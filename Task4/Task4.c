@@ -1,113 +1,69 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <sys/time.h>
+#include <omp.h>
 
-// Function to swap two integers
-void swap(int *x, int *y) {
-    int temp = *x;
-    *x = *y;
-    *y = temp;
-}
+// Function to merge two sorted subarrays
+void simple_merge(int a[], int low, int mid, int high) {
+    int i = low, j = mid + 1, k = low;
+    int c[10000];  // Temporary array
 
-// Function to generate random numbers
-void generate_random(int a[], int n) {
-    int i;
-    srand(time(0));
-    for (i = 0; i < n; i++) {
-        a[i] = rand() % 1000;
-    }
-}
-
-// Partition function for quicksort
-int Partition(int a[], int l, int h) {
-    int i = l, j = h + 1;
-    int pivot = a[l];
-
-    while (1) {
-        while (++i <= h && a[i] < pivot);
-        while (--j >= l && a[j] > pivot);
-        if (i >= j) break;
-        swap(&a[i], &a[j]);
+    while (i <= mid && j <= high) {
+        if (a[i] < a[j]) {
+            c[k++] = a[i++];
+        } else {
+            c[k++] = a[j++];
+        }
     }
 
-    swap(&a[l], &a[j]);
-    return j;
+    while (i <= mid)
+        c[k++] = a[i++];
+
+    while (j <= high)
+        c[k++] = a[j++];
+
+    for (i = low; i <= high; i++)
+        a[i] = c[i];
 }
 
-// Quicksort function
-void Quicksort(int a[], int l, int h) {
-    if (l < h) {
-        int s = Partition(a, l, h);
-        Quicksort(a, l, s - 1);
-        Quicksort(a, s + 1, h);
+// Parallel merge sort function
+void merge_sort_parallel(int a[], int low, int high) {
+    if (low < high) {
+        int mid = (low + high) / 2;
+
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            merge_sort_parallel(a, low, mid);
+
+            #pragma omp section
+            merge_sort_parallel(a, mid + 1, high);
+        }
+
+        simple_merge(a, low, mid, high);
     }
 }
 
 int main() {
-    int a[100000], i, ch, n;
-    struct timeval t1, t2;
-    double start, end;
-    FILE *fp;
+    int a[10000], n, i;
 
-    printf("Enter the type of operation\n");
-    printf("1 - Randomly generate numbers and quicksort\n");
-    printf("2 - Enter the number of values to generate and sort\n");
-    scanf("%d", &ch);
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
 
-    switch (ch) {
-        case 1:
-            fp = fopen("quicksort.txt", "w");
-            if (fp == NULL) {
-                printf("Failed to open file.\n");
-                return 1;
-            }
+    printf("Enter %d elements:\n", n);
+    for (i = 0; i < n; i++)
+        scanf("%d", &a[i]);
 
-            for (i = 10000; i <= 95000; i += 5000) {
-                generate_random(a, i);
-                gettimeofday(&t1, NULL);
-                Quicksort(a, 0, i - 1);
-                gettimeofday(&t2, NULL);
+    // Set number of OpenMP threads
+    omp_set_num_threads(4);
 
-                start = t1.tv_sec + t1.tv_usec / 1000000.0;
-                end = t2.tv_sec + t2.tv_usec / 1000000.0;
+    // Perform parallel merge sort
+    merge_sort_parallel(a, 0, n - 1);
 
-                printf("%d\t%lf\n", i, end - start);
-                fprintf(fp, "%d\t%lf\n", i, end - start);
-            }
-
-            fclose(fp);
-            break;
-
-        case 2:
-            printf("Enter the number of values to be generated: ");
-            scanf("%d", &n);
-            generate_random(a, n);
-
-            printf("Original numbers are:\n");
-            for (i = 0; i < n; i++) {
-                printf("%d\t", a[i]);
-            }
-            printf("\n");
-
-            gettimeofday(&t1, NULL);
-            Quicksort(a, 0, n - 1);
-            gettimeofday(&t2, NULL);
-
-            start = t1.tv_sec + t1.tv_usec / 1000000.0;
-            end = t2.tv_sec + t2.tv_usec / 1000000.0;
-
-            printf("%d\t%lf\n", n, end - start);
-            printf("Sorted numbers are:\n");
-            for (i = 0; i < n; i++) {
-                printf("%d\t", a[i]);
-            }
-            printf("\n");
-            break;
-
-        default:
-            printf("Invalid choice\n");
-    }
+    // Display sorted array
+    printf("\nSorted array:\n");
+    for (i = 0; i < n; i++)
+        printf("%d ", a[i]);
+    printf("\n");
 
     return 0;
 }
