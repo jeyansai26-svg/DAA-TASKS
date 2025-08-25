@@ -1,63 +1,113 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
 
-void merge(int a[], int p, int q, int r);
+// Function to swap two integers
+void swap(int *x, int *y) {
+    int temp = *x;
+    *x = *y;
+    *y = temp;
+}
 
-// Merge Sort function
-void mergeSort(int a[], int p, int r) {
-    if (p < r) {
-        int q = (p + r) / 2;
-        mergeSort(a, p, q);
-        mergeSort(a, q + 1, r);
-        merge(a, p, q, r);
+// Function to generate random numbers
+void generate_random(int a[], int n) {
+    int i;
+    srand(time(0));
+    for (i = 0; i < n; i++) {
+        a[i] = rand() % 1000;
     }
 }
 
-// Function to merge the subarrays
-void merge(int a[], int p, int q, int r) {
-    int b[100];  // Adjusted to a larger safe size
-    int i = p, j = q + 1, k = 0;
+// Partition function for quicksort
+int Partition(int a[], int l, int h) {
+    int i = l, j = h + 1;
+    int pivot = a[l];
 
-    while (i <= q && j <= r) {
-        if (a[i] < a[j]) {
-            b[k++] = a[i++];
-        } else {
-            b[k++] = a[j++];
-        }
+    while (1) {
+        while (++i <= h && a[i] < pivot);
+        while (--j >= l && a[j] > pivot);
+        if (i >= j) break;
+        swap(&a[i], &a[j]);
     }
 
-    while (i <= q) {
-        b[k++] = a[i++];
-    }
-
-    while (j <= r) {
-        b[k++] = a[j++];
-    }
-
-    // Copy sorted elements back to original array
-    for (i = 0; i < k; i++) {
-        a[p + i] = b[i];
-    }
+    swap(&a[l], &a[j]);
+    return j;
 }
 
-// Function to print the array
-void printArray(int a[], int size) {
-    for (int i = 0; i < size; i++) {
-        printf("%d ", a[i]);
+// Quicksort function
+void Quicksort(int a[], int l, int h) {
+    if (l < h) {
+        int s = Partition(a, l, h);
+        Quicksort(a, l, s - 1);
+        Quicksort(a, s + 1, h);
     }
-    printf("\n");
 }
 
 int main() {
-    int arr[] = {32, 45, 67, 2, 7};
-    int len = sizeof(arr) / sizeof(arr[0]);
+    int a[100000], i, ch, n;
+    struct timeval t1, t2;
+    double start, end;
+    FILE *fp;
 
-    printf("Given array:\n");
-    printArray(arr, len);
+    printf("Enter the type of operation\n");
+    printf("1 - Randomly generate numbers and quicksort\n");
+    printf("2 - Enter the number of values to generate and sort\n");
+    scanf("%d", &ch);
 
-    mergeSort(arr, 0, len - 1);
+    switch (ch) {
+        case 1:
+            fp = fopen("quicksort.txt", "w");
+            if (fp == NULL) {
+                printf("Failed to open file.\n");
+                return 1;
+            }
 
-    printf("\nSorted array:\n");
-    printArray(arr, len);
+            for (i = 10000; i <= 95000; i += 5000) {
+                generate_random(a, i);
+                gettimeofday(&t1, NULL);
+                Quicksort(a, 0, i - 1);
+                gettimeofday(&t2, NULL);
+
+                start = t1.tv_sec + t1.tv_usec / 1000000.0;
+                end = t2.tv_sec + t2.tv_usec / 1000000.0;
+
+                printf("%d\t%lf\n", i, end - start);
+                fprintf(fp, "%d\t%lf\n", i, end - start);
+            }
+
+            fclose(fp);
+            break;
+
+        case 2:
+            printf("Enter the number of values to be generated: ");
+            scanf("%d", &n);
+            generate_random(a, n);
+
+            printf("Original numbers are:\n");
+            for (i = 0; i < n; i++) {
+                printf("%d\t", a[i]);
+            }
+            printf("\n");
+
+            gettimeofday(&t1, NULL);
+            Quicksort(a, 0, n - 1);
+            gettimeofday(&t2, NULL);
+
+            start = t1.tv_sec + t1.tv_usec / 1000000.0;
+            end = t2.tv_sec + t2.tv_usec / 1000000.0;
+
+            printf("%d\t%lf\n", n, end - start);
+            printf("Sorted numbers are:\n");
+            for (i = 0; i < n; i++) {
+                printf("%d\t", a[i]);
+            }
+            printf("\n");
+            break;
+
+        default:
+            printf("Invalid choice\n");
+    }
 
     return 0;
 }
