@@ -1,0 +1,10 @@
+#include <stdio.h> 
+
+int main() {
+    int a = 4;
+    int b = 6;
+    int c;
+    c = a + b;
+    printf("%d\n", c);  // Fix: format string must be in quotes
+    return 0;
+}
